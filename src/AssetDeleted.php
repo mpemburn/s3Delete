@@ -41,14 +41,37 @@ class AssetDeleted
     {
         $file = get_post_meta($attachmentId, '_wp_attached_file', true);
 
-        $this->removeFromS3($file);
+        $this->getAllMatching($file);
+    }
+
+    protected function getAllMatching(string $file)
+    {
+        $pathParts = pathinfo($file);
+
+        $objects = $this->s3Client->getIterator('ListObjects', array(
+            "Bucket" => AWS_BUCKET,
+            "Prefix" => AWS_UPLOADS_PREFIX . $pathParts['dirname'],
+        ));
+
+        // Pattern to match myfile.jpg with myfile-100x100.jpg, myfile-1024x768.jpg, etc,
+        $pattern = '/'
+            . preg_quote(AWS_UPLOADS_PREFIX . $pathParts['dirname'] . '/' . $pathParts['filename'], '/')
+            . '(.*).' . $pathParts['extension'] . '/';
+
+        foreach ($objects as $object) {
+            $found = $object['Key'];
+            // Remove only matching files
+            if (preg_match($pattern, $found)) {
+                $this->removeFromS3($found);
+            }
+        }
     }
 
     protected function removeFromS3(string $file)
     {
         $this->s3Client->deleteObject([
             'Bucket' => 'wordpress-clarku-test',
-            'Key'    => 'uploads/' . $file,
+            'Key'    => $file,
         ]);
     }
 }
