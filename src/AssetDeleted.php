@@ -25,6 +25,7 @@ class AssetDeleted
 
     protected function registerActions()
     {
+        // Note: Set constants in wp-config
         $this->s3Client = new S3Client([
             'version' => 'latest',
             'region'  => AWS_REGION,
@@ -70,7 +71,7 @@ class AssetDeleted
     protected function removeFromS3(string $file)
     {
         $this->s3Client->deleteObject([
-            'Bucket' => 'wordpress-clarku-test',
+            'Bucket' => AWS_BUCKET,
             'Key'    => $file,
         ]);
     }
